@@ -52,6 +52,7 @@
 │  Entrypoint: /opt/CrowdStrike/rootfs/bin/           │
 │              falcon-entrypoint /app/entrypoint.sh   │
 │  Env: FALCONCTL_OPTS=--cid=<CID>                    │
+│       CS_CONTAINER=<YOUR_CONTAINER_NAME>            │
 │       CS_CLOUD_SERVICE=ECS_FARGATE                  │
 └─────────────────────────────────────────────────────┘
                           │
@@ -103,7 +104,7 @@ echo "$LOGIN_PASS" | docker login --username AWS --password-stdin \
 # Login Succeeded
 ```
 
-**Important — macOS Keychain issue:** The standard Docker `config.json` on macOS uses `"credsStore": "osxkeychain"`. When `falconutil` runs inside a Linux container and mounts your `config.json`, it cannot read credentials from macOS Keychain because the keychain binary doesn't exist inside the container. The fix is documented in [Phase 4](#patch-the-application-image-with-falconutil).
+**Important — macOS Keychain issue:** The standard Docker `config.json` on macOS uses `"credsStore": "osxkeychain"`. When `falconutil` runs inside a Linux container and mounts your `config.json`, it cannot read credentials from macOS Keychain because the keychain binary doesn't exist inside the container. The fix is documented in the [Patch the Application Image with falconutil](#patch-the-application-image-with-falconutil) section.
 
 ---
 
@@ -251,7 +252,7 @@ WARNING: The requested image's platform (linux/amd64) does not match the detecte
 ...
 Error: failed to pull falcon image: failed to pull image '...' for platform 'linux/arm64/v8' (credentials tried: 1)
 ```
-`falconutil` auto-detects the source image platform and then tries to pull the Falcon image for that same platform. Since the source image was built as arm64, it tries to pull the Falcon sensor as arm64. The fix is explicit `--platform linux/amd64` on both the `docker run` command **and** the `falconutil` flag.
+`falconutil` auto-detects the source image platform and then tries to pull the Falcon image for that same platform. Without `--platform linux/amd64` on the `docker run` command, Docker selects the arm64 native variant of the multi-arch `falcon-container` image on Apple Silicon. The falconutil process, now running as arm64, then tries to pull and process images for `linux/arm64/v8` — even if your source image was amd64. The fix is `--platform linux/amd64` on the `docker run` command (forces the falconutil container to run as amd64) **and** as a `falconutil` flag (explicitly tells falconutil which platform to target).
 
 ### Working falconutil command
 
@@ -328,7 +329,7 @@ Entrypoint: ['/opt/CrowdStrike/rootfs/bin/falcon-entrypoint', '/app/entrypoint.s
 Cmd: None
 Env (CrowdStrike): [
   'FALCONCTL_OPTS=--cid=<YOUR_CID_WITH_CHECKSUM>',
-  'CS_CONTAINER=cs-batch-test',
+  'CS_CONTAINER=<YOUR_CONTAINER_NAME>',
   'CS_CLOUD_SERVICE=ECS_FARGATE',
   '__CS_FALCON_SENSOR_ROOT=/opt/CrowdStrike/rootfs'
 ]
@@ -338,6 +339,7 @@ Env (CrowdStrike): [
 |---|---|
 | `Entrypoint` starts with `/opt/CrowdStrike/...` | Falcon sensor wraps the original entrypoint |
 | `FALCONCTL_OPTS=--cid=...` | CID correctly embedded — sensor will use this on startup |
+| `CS_CONTAINER=<YOUR_CONTAINER_NAME>` | Container name passed via `--container`; used by Falcon to identify which container it is protecting |
 | `CS_CLOUD_SERVICE=ECS_FARGATE` | Tells sensor it's running on Fargate (userspace mode, no ptrace needed) |
 | `__CS_FALCON_SENSOR_ROOT` | Sensor binaries are at `/opt/CrowdStrike/rootfs` inside the container |
 
@@ -633,6 +635,8 @@ aws ecs execute-command \
   --command "/tmp/CrowdStrike/rootfs/bin/falconctl -g --aid"
 ```
 
+> **Note:** `--container default` is the ECS container name assigned by AWS Batch when no explicit name is set in `containerProperties`. This is distinct from `CS_CONTAINER` in the patched image, which is a Falcon-internal env var set by the `--container` flag passed to `falconutil`.
+
 A registered sensor will output a 32-character hex AID. An empty AID means the sensor started but hasn't connected yet (check outbound connectivity to CrowdStrike cloud).
 
 ---
@@ -680,7 +684,7 @@ The sensor is starting but can't phone home. Outbound networking issue:
 ### falconutil fails with "credentials tried: N"
 
 ECR auth issue from inside the falconutil container:
-- The `config.json` uses `"credsStore": "osxkeychain"` → use the raw-token workaround from [Phase 4](#patch-the-application-image-with-falconutil)
+- The `config.json` uses `"credsStore": "osxkeychain"` → use the raw-token workaround from the [Patch the Application Image with falconutil](#patch-the-application-image-with-falconutil) section
 - The ECR token has expired (tokens last 12 hours) → regenerate with `aws ecr get-login-password`
 - The ECR repo is in a different AWS account → include cross-account ECR credentials in the config.json
 
