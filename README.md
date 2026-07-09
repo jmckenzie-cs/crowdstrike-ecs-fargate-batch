@@ -269,7 +269,7 @@ docker run --user 0:0 \
   --falcon-image-uri <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/falcon-sensor/falcon-container:amd64 \
   --cid <YOUR_CID_WITH_CHECKSUM> \
   --cloud-service ECS_FARGATE \
-  --container cs-batch-test \
+  --container <YOUR_CONTAINER_NAME> \
   --platform linux/amd64 \
   --image-pull-policy IfNotPresent
 ```
