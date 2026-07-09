@@ -269,9 +269,12 @@ docker run --user 0:0 \
   --falcon-image-uri <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/falcon-sensor/falcon-container:amd64 \
   --cid <YOUR_CID_WITH_CHECKSUM> \
   --cloud-service ECS_FARGATE \
+  --container cs-batch-test \
   --platform linux/amd64 \
   --image-pull-policy IfNotPresent
 ```
+
+**Note on `--container`:** This flag specifies the container name that the sensor should target. It sets `CS_CONTAINER` in the patched image's environment, which must match the container name as defined in your ECS/Batch job definition. This flag is not documented in the official CrowdStrike docs as of the time of writing (sensor version 7.39.0-7802) but was present in the working command and confirmed in the patched image's environment variables.
 
 **Successful output:**
 ```
