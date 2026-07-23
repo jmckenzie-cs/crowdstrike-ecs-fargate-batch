@@ -1,7 +1,7 @@
 # CrowdStrike Falcon Container Sensor — AWS Batch + ECS Fargate Deployment Guide
 
 **Validated:** 2026-07-09
-**Account:** 597047870845 (us-east-1)
+**Account:** <YOUR_AWS_ACCOUNT_ID> (us-east-1)
 **Falcon Sensor Version:** 7.39.0-7802
 **Approach:** falconutil image patching (ECS_FARGATE mode)
 
@@ -63,8 +63,8 @@
 ┌─────────────────────────────────────────────────────┐
 │  AWS Batch → ECS Fargate Task (x86_64)              │
 │  Cluster: AWSBatch-cs-fargate-ce-*                  │
-│  Task: 2bfa594896aa4323a7e186fcf7517ea0             │
-│  IP: 172.31.53.231 (subnet-059a781a5ded5d9cb)       │
+│  Task: <task-id>             │
+│  IP: <task-private-ip> (<subnet-id-1>)       │
 │                                                      │
 │  Container starts → falcon-entrypoint runs sensor   │
 │  Sensor phones home → Falcon Cloud (us-2)           │
@@ -81,9 +81,9 @@
 ```bash
 $ aws sts get-caller-identity
 {
-    "UserId": "AIDAYWAWTQV6ROYESN524",
-    "Account": "597047870845",
-    "Arn": "arn:aws:iam::597047870845:user/ultimate_demo"
+    "UserId": "<IAM_USER_ID>",
+    "Account": "<YOUR_AWS_ACCOUNT_ID>",
+    "Arn": "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:user/<your-iam-user>"
 }
 ```
 
@@ -103,7 +103,7 @@ $ docker info --format '{{.ServerVersion}}'
 ```bash
 LOGIN_PASS=$(aws ecr get-login-password --region us-east-1)
 echo "$LOGIN_PASS" | docker login --username AWS --password-stdin \
-  597047870845.dkr.ecr.us-east-1.amazonaws.com
+  <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
 # Login Succeeded
 ```
 
@@ -159,9 +159,9 @@ If you see `aarch64` here, you forgot `--platform linux/amd64`.
 aws ecr create-repository --repository-name cs-batch-test --region us-east-1
 
 docker tag cs-batch-test:amd64 \
-  597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64
+  <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64
 
-docker push 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64
 # amd64: digest: sha256:99c40947b3ed4352d705c1c6b5e87f168223be980ed13112e7f6a601c5ff7587
 ```
 
@@ -209,10 +209,10 @@ aws ecr create-repository \
   --region us-east-1
 
 docker tag "$LATESTSENSOR" \
-  597047870845.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64
+  <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64
 
 docker push \
-  597047870845.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64
+  <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64
 # amd64: digest: sha256:669e171f5704436c3da274799f75d8e4bf3dbdebc7094caeb7968ea664e49e74
 ```
 
@@ -243,7 +243,7 @@ mkdir -p /tmp/docker-ecr-config
 cat > /tmp/docker-ecr-config/config.json <<EOF
 {
   "auths": {
-    "597047870845.dkr.ecr.us-east-1.amazonaws.com": {
+    "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com": {
       "auth": "${ECR_AUTH}"
     }
   }
@@ -270,12 +270,12 @@ docker run --user 0:0 \
   -v /tmp/docker-ecr-config/config.json:/root/.docker/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --platform linux/amd64 \
-  --rm 597047870845.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64 \
+  --rm <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64 \
   falconutil patch-image \
-  --source-image-uri 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64 \
-  --target-image-uri 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest \
-  --falcon-image-uri 597047870845.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64 \
-  --cid 4344FD98B7B242519A94CD52E0345CD9-52 \
+  --source-image-uri <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test:amd64 \
+  --target-image-uri <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest \
+  --falcon-image-uri <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/falcon-sensor/falcon-container:amd64 \
+  --cid <YOUR_CID_WITH_CHECKSUM> \
   --cloud-service ECS_FARGATE \
   --container cs-batch-test \
   --platform linux/amd64 \
@@ -308,7 +308,7 @@ time="..." level=info msg="Platform compatibility check passed: linux/amd64"
 ### Push the patched image
 
 ```bash
-docker push 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest
 # latest: digest: sha256:e098114ae3be1ef328fc6c70da755e549d1cc67550e9dc844e85e92a1ee9431b size: 1571
 ```
 
@@ -319,7 +319,7 @@ docker push 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:l
 **This is a critical verification step.** Run this after `falconutil` to confirm the image was correctly modified before deploying:
 
 ```bash
-docker inspect 597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest \
+docker inspect <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest \
   --format '{{json .Config}}' | python3 -c "
 import json, sys
 cfg = json.load(sys.stdin)
@@ -334,7 +334,7 @@ print('Env (CrowdStrike):', [e for e in (cfg.get('Env') or []) if 'CS_' in e or 
 Entrypoint: ['/opt/CrowdStrike/rootfs/bin/falcon-entrypoint', '/app/entrypoint.sh']
 Cmd: None
 Env (CrowdStrike): [
-  'FALCONCTL_OPTS=--cid=4344FD98B7B242519A94CD52E0345CD9-52',
+  'FALCONCTL_OPTS=--cid=<YOUR_CID_WITH_CHECKSUM>',
   'CS_CONTAINER=cs-batch-test',
   'CS_CLOUD_SERVICE=ECS_FARGATE',
   '__CS_FALCON_SENSOR_ROOT=/opt/CrowdStrike/rootfs'
@@ -362,7 +362,7 @@ Env (CrowdStrike): [
 ```bash
 # Verify role exists
 aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text
-# arn:aws:iam::597047870845:role/ecsTaskExecutionRole
+# arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole
 
 # Verify required policies
 aws iam list-attached-role-policies --role-name ecsTaskExecutionRole \
@@ -413,14 +413,14 @@ aws batch create-compute-environment \
     "type": "FARGATE",
     "maxvCpus": 256,
     "subnets": [
-      "subnet-059a781a5ded5d9cb",
-      "subnet-0013bb1850fa8fedf",
-      "subnet-03f3531990ec51f16",
-      "subnet-0bd7314cc4a541e24",
-      "subnet-09e75cdd99bfb4d51",
-      "subnet-09ba2e8dd6e555d3e"
+      "<subnet-id-1>",
+      "<subnet-id-2>",
+      "<subnet-id-3>",
+      "<subnet-id-4>",
+      "<subnet-id-5>",
+      "<subnet-id-6>"
     ],
-    "securityGroupIds": ["sg-0e19a5a2b0ebeda19"]
+    "securityGroupIds": ["<security-group-id>"]
   }' \
   --region us-east-1
 ```
@@ -429,8 +429,8 @@ aws batch create-compute-environment \
 ```json
 {
   "computeEnvironmentName": "cs-fargate-ce",
-  "computeEnvironmentArn": "arn:aws:batch:us-east-1:597047870845:compute-environment/cs-fargate-ce",
-  "ecsClusterArn": "arn:aws:ecs:us-east-1:597047870845:cluster/AWSBatch-cs-fargate-ce-691a9cdb-b2c8-3642-9a5d-c5825e04119b",
+  "computeEnvironmentArn": "arn:aws:batch:us-east-1:<YOUR_AWS_ACCOUNT_ID>:compute-environment/cs-fargate-ce",
+  "ecsClusterArn": "arn:aws:ecs:us-east-1:<YOUR_AWS_ACCOUNT_ID>:cluster/AWSBatch-cs-fargate-ce-<cluster-uuid>",
   "type": "MANAGED",
   "state": "ENABLED",
   "status": "VALID",
@@ -495,13 +495,13 @@ aws batch register-job-definition \
   --type container \
   --platform-capabilities '["FARGATE"]' \
   --container-properties '{
-    "image": "597047870845.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest",
+    "image": "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/cs-batch-test-patched:latest",
     "resourceRequirements": [
       {"type": "VCPU", "value": "0.25"},
       {"type": "MEMORY", "value": "512"}
     ],
-    "jobRoleArn": "arn:aws:iam::597047870845:role/ecsTaskExecutionRole",
-    "executionRoleArn": "arn:aws:iam::597047870845:role/ecsTaskExecutionRole",
+    "jobRoleArn": "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
+    "executionRoleArn": "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
     "networkConfiguration": {
       "assignPublicIp": "ENABLED"
     },
@@ -525,7 +525,7 @@ aws batch register-job-definition \
 ```json
 {
     "jobDefinitionName": "cs-falcon-job",
-    "jobDefinitionArn": "arn:aws:batch:us-east-1:597047870845:job-definition/cs-falcon-job:1",
+    "jobDefinitionArn": "arn:aws:batch:us-east-1:<YOUR_AWS_ACCOUNT_ID>:job-definition/cs-falcon-job:1",
     "revision": 1,
     "status": "ACTIVE",
     "type": "container",
@@ -557,7 +557,7 @@ JOB_ID=$(aws batch submit-job \
   --query 'jobId' --output text)
 
 echo "Job ID: $JOB_ID"
-# 12fd13a4-09e0-46b7-bb97-63c5ea859593
+# <job-id>
 ```
 
 ### Monitor Job Status
@@ -582,10 +582,10 @@ Time from submission to RUNNING: ~50 seconds (Fargate cold start).
 ```bash
 aws batch describe-jobs --jobs $JOB_ID --region us-east-1 \
   --query 'jobs[0].container.taskArn' --output text
-# arn:aws:ecs:us-east-1:597047870845:task/AWSBatch-cs-fargate-ce-691a9cdb-.../2bfa594896aa4323a7e186fcf7517ea0
+# arn:aws:ecs:us-east-1:<YOUR_AWS_ACCOUNT_ID>:task/AWSBatch-cs-fargate-ce-<cluster-uuid>-.../<task-id>
 ```
 
-The short task ID is the last segment: `2bfa594896aa4323a7e186fcf7517ea0`. This is the **Pod ID** used in the Falcon console.
+The short task ID is the last segment: `<task-id>`. This is the **Pod ID** used in the Falcon console.
 
 ---
 
@@ -601,7 +601,7 @@ AWS Batch + awslogs driver names streams as:
 ```
 In this deployment:
 ```
-batch/default/2bfa594896aa4323a7e186fcf7517ea0
+batch/default/<task-id>
 ```
 
 ### Fetch logs
@@ -609,7 +609,7 @@ batch/default/2bfa594896aa4323a7e186fcf7517ea0
 ```bash
 aws logs get-log-events \
   --log-group-name /aws/batch/cs-falcon-job \
-  --log-stream-name "batch/default/2bfa594896aa4323a7e186fcf7517ea0" \
+  --log-stream-name "batch/default/<task-id>" \
   --region us-east-1 \
   --query 'events[].message' \
   --output text
@@ -656,8 +656,8 @@ Because AWS Batch on Fargate creates real ECS tasks, you can query them directly
 
 ```bash
 aws ecs describe-tasks \
-  --cluster AWSBatch-cs-fargate-ce-691a9cdb-b2c8-3642-9a5d-c5825e04119b \
-  --tasks 2bfa594896aa4323a7e186fcf7517ea0 \
+  --cluster AWSBatch-cs-fargate-ce-<cluster-uuid> \
+  --tasks <task-id> \
   --region us-east-1
 ```
 
@@ -674,9 +674,9 @@ aws ecs describe-tasks \
 | `pullStartedAt` | `2026-07-09T10:15:41` | ECR image pull began |
 | `pullStoppedAt` | `2026-07-09T10:15:49` | ECR image pull complete (8 seconds) |
 | `startedAt` | `2026-07-09T10:15:49` | Container started |
-| `privateIPv4Address` | `172.31.53.231` | Task IP in VPC |
-| `subnetId` | `subnet-059a781a5ded5d9cb` | us-east-1e subnet |
-| `networkInterfaceId` | `eni-09470c13398a59a36` | ENI attached to the task |
+| `privateIPv4Address` | `<task-private-ip>` | Task IP in VPC |
+| `subnetId` | `<subnet-id-1>` | us-east-1e subnet |
+| `networkInterfaceId` | `<eni-id>` | ENI attached to the task |
 | `enableExecuteCommand` | `true` | ECS Exec enabled (requires job definition + IAM changes below) |
 
 **Getting the ECS cluster name from Batch:**
@@ -684,7 +684,7 @@ aws ecs describe-tasks \
 aws batch describe-compute-environments \
   --compute-environments cs-fargate-ce \
   --query 'computeEnvironments[0].ecsClusterArn' --output text --region us-east-1
-# arn:aws:ecs:us-east-1:597047870845:cluster/AWSBatch-cs-fargate-ce-691a9cdb-b2c8-3642-9a5d-c5825e04119b
+# arn:aws:ecs:us-east-1:<YOUR_AWS_ACCOUNT_ID>:cluster/AWSBatch-cs-fargate-ce-<cluster-uuid>
 ```
 
 The cluster name is everything after `cluster/`.
@@ -715,7 +715,7 @@ session-manager-plugin` on macOS) or use AWS CloudShell, which has it preinstall
 
 1. Log into the Falcon console at your cloud URL (this deployment uses **us-2**)
 2. Go to: **Host setup and management → Manage endpoints → Host management**
-3. Add a filter: **Pod ID** = `2bfa594896aa4323a7e186fcf7517ea0`
+3. Add a filter: **Pod ID** = `<task-id>`
 
 The Pod ID in Falcon corresponds directly to the ECS Task ID from AWS.
 
@@ -734,7 +734,7 @@ The Pod ID in Falcon corresponds directly to the ECS Task ID from AWS.
 
 ```bash
 aws ecs execute-command \
-  --cluster AWSBatch-cs-fargate-ce-691a9cdb-b2c8-3642-9a5d-c5825e04119b \
+  --cluster AWSBatch-cs-fargate-ce-<cluster-uuid> \
   --task <TASK_ID> \
   --container default \
   --interactive \
@@ -841,7 +841,7 @@ This is expected. AWS Batch does not expose Linux capabilities through its API. 
 | Batch job queue | `cs-fargate-queue` | ✓ VALID / ENABLED |
 | Batch job definition | `cs-falcon-job:1` | ✓ ACTIVE |
 | CloudWatch log group | `/aws/batch/cs-falcon-job` | ✓ receiving logs |
-| Batch job | `12fd13a4-09e0-46b7-bb97-63c5ea859593` | ✓ RUNNING |
-| ECS task | `2bfa594896aa4323a7e186fcf7517ea0` | ✓ RUNNING |
+| Batch job | `<job-id>` | ✓ RUNNING |
+| ECS task | `<task-id>` | ✓ RUNNING |
 | Sensor version | `7.39.0-7802` | ✓ |
 | Platform | `x86_64` / Fargate 1.4.0 | ✓ |

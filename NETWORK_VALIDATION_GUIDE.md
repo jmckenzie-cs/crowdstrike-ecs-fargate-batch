@@ -1,7 +1,7 @@
 # Falcon Sensor Network Validation Guide
 ## AWS Batch + ECS Fargate Deployment
 
-**Environment validated:** AWS Account 597047870845, us-east-1, Falcon Cloud us-2
+**Environment validated:** AWS Account <YOUR_AWS_ACCOUNT_ID>, us-east-1, Falcon Cloud us-2
 **Sensor version:** 7.39.0-7802
 **Validated:** 2026-07-23
 
@@ -66,7 +66,7 @@ brew install --cask session-manager-plugin   # macOS
 ```bash
 aws batch describe-jobs --jobs <JOB_ID> --region us-east-1 \
   --query 'jobs[0].container.taskArn' --output text
-# arn:aws:ecs:us-east-1:597047870845:task/<CLUSTER>/<TASK_ID>
+# arn:aws:ecs:us-east-1:<YOUR_AWS_ACCOUNT_ID>:task/<CLUSTER>/<TASK_ID>
 ```
 
 ### Get the ECS Cluster Name
@@ -105,8 +105,8 @@ single `/bin/sh -c '...'` invocation.
 | Field | Value |
 |---|---|
 | Hostname | `ip-172-31-86-137.ec2.internal` |
-| Container IP | `172.31.86.137` (VPC private) |
-| Outbound public IP | `174.129.112.174` (Fargate ENI, assigned via `assignPublicIp: ENABLED`) |
+| Container IP | `<task-private-ip>` (VPC private) |
+| Outbound public IP | `<fargate-public-ip>` (Fargate ENI, assigned via `assignPublicIp: ENABLED`) |
 | DNS resolver | `172.31.0.2` (AWS VPC resolver, standard for all VPCs) |
 
 ---
@@ -204,7 +204,7 @@ curl -s --connect-timeout 5 https://checkip.amazonaws.com
 
 **Validated output:**
 ```
-174.129.112.174
+<fargate-public-ip>
 ```
 
 This is the Fargate task's public ENI IP (assigned by `assignPublicIp: ENABLED`). In
@@ -244,7 +244,7 @@ $LOADER --library-path $LIBPATH $FALCONCTL -g --aid
 
 **Healthy output:**
 ```
-aid="c354950c4852416c99c0806327627233"
+aid="<agent-id>"
 ```
 
 **Empty AID** (`aid=""`) means the sensor started but has not registered. Check:

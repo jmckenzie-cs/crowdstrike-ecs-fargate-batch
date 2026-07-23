@@ -1,7 +1,7 @@
 # ECS Exec Troubleshooting Enablement Guide
 ## AWS Batch + ECS Fargate — Falcon Sensor Deployments
 
-**Environment:** AWS Account 597047870845, us-east-1, Falcon Cloud us-2
+**Environment:** AWS Account <YOUR_AWS_ACCOUNT_ID>, us-east-1, Falcon Cloud us-2
 **Validated:** 2026-07-23
 
 ---
@@ -96,17 +96,17 @@ SSM_POLICY_NAME=ECSExecSSMPermissions \
 
 ```
 [10:23:01] Preflight checks...
-[10:23:01]   AWS account : 597047870845
-[10:23:01]   Caller      : arn:aws:iam::597047870845:user/ultimate_demo
+[10:23:01]   AWS account : <YOUR_AWS_ACCOUNT_ID>
+[10:23:01]   Caller      : arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:user/<your-iam-user>
 [10:23:01]   Region      : us-east-1
 [10:23:02] Fetching latest ACTIVE revision of job definition 'cs-falcon-job'...
-[10:23:02]   Found: arn:aws:batch:us-east-1:597047870845:job-definition/cs-falcon-job:1 (revision 1)
-[10:23:02]   Task role   : ecsTaskExecutionRole (arn:aws:iam::597047870845:role/ecsTaskExecutionRole)
+[10:23:02]   Found: arn:aws:batch:us-east-1:<YOUR_AWS_ACCOUNT_ID>:job-definition/cs-falcon-job:1 (revision 1)
+[10:23:02]   Task role   : ecsTaskExecutionRole (arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole)
 [10:23:02] Attaching inline policy 'ECSExecSSMPermissions' to role 'ecsTaskExecutionRole'...
 [10:23:03]   Done — 'ECSExecSSMPermissions' is in place on 'ecsTaskExecutionRole'
 [10:23:03] Building updated containerProperties with enableExecuteCommand: true...
 [10:23:03] Registering new revision of 'cs-falcon-job'...
-[10:23:04]   Registered: arn:aws:batch:us-east-1:597047870845:job-definition/cs-falcon-job:2 (revision 2)
+[10:23:04]   Registered: arn:aws:batch:us-east-1:<YOUR_AWS_ACCOUNT_ID>:job-definition/cs-falcon-job:2 (revision 2)
 
 ═══════════════════════════════════════════════════════════════════════════
   Troubleshooting enablement complete
@@ -254,7 +254,7 @@ aws ecs execute-command \
 
 **Expected healthy output:**
 ```
-aid="c354950c4852416c99c0806327627233"
+aid="<agent-id>"
 ```
 
 **Empty AID** (`aid=""`) means the sensor started but hasn't registered. Check network

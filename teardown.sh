@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Teardown script for Cigna Falcon/Batch test environment
-# AWS Account: 597047870845 | Region: us-east-1
+# AWS Account: <YOUR_AWS_ACCOUNT_ID> | Region: us-east-1
 
 set -euo pipefail
 
 REGION="us-east-1"
-ACCOUNT_ID="597047870845"
+ACCOUNT_ID="<YOUR_AWS_ACCOUNT_ID>"
 
 JOB_DEFINITION="cs-falcon-job"
 JOB_QUEUE="cs-fargate-queue"
